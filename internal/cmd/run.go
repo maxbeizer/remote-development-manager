@@ -16,13 +16,12 @@ import (
 func newRunCmd(ctx context.Context, logger *log.Logger, config *config.RdmConfig) *cobra.Command {
 	// TODO this needs to diverge, server should hold all the commands and
 	// client should query for available commands
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "Runs a custom command defined in the rdm config",
-		Long:  longRunDescription(config),
 		Run: func(cmd *cobra.Command, args []string) {
 			c := client.New()
-			content, err := c.SendCommand(context.TODO(), "run", args...)
+			content, err := c.SendCommand(ctx, "run", args...)
 
 			if err != nil {
 				fmt.Printf("Could not run command: %v", err)
@@ -32,6 +31,13 @@ func newRunCmd(ctx context.Context, logger *log.Logger, config *config.RdmConfig
 			fmt.Println(string(content))
 		},
 	}
+
+	cmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		cmd.Usage()
+		fmt.Println(longRunDescription(config))
+	})
+
+	return cmd
 }
 
 func longRunDescription(config *config.RdmConfig) string {
@@ -54,8 +60,7 @@ func longRunDescription(config *config.RdmConfig) string {
 	out.WriteString("Available commands:\n")
 
 	for _, command := range bytes.Split(result, []byte("\n")) {
-		out.WriteString("  ")
-		out.Write(command)
+		out.WriteString(fmt.Sprintf("  %s\n", command))
 	}
 
 	return out.String()

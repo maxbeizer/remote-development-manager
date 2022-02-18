@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/blakewilliams/remote-development-manager/internal/clipboard"
@@ -25,6 +26,7 @@ type Server struct {
 	httpServer     *http.Server
 	cancel         context.CancelFunc
 	processManager *processManager
+	context        context.Context
 }
 
 type Command struct {
@@ -70,15 +72,48 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 				s.logger.Printf("could not write paste message: %v", err)
 			}
 		}
+	case "ps":
+		commands := s.processManager.RunningProcesses()
+
+		if len(commands) == 0 {
+			rw.Write([]byte("No processes running\n"))
+			return
+		}
+
+		writer := tabwriter.NewWriter(rw, 40, 2, 4, ' ', 0)
+		rw.Write([]byte("Processes:\n"))
+
+		for _, command := range commands {
+			fmt.Fprintf(writer, "%d\t%s\n", command.Process.Pid, command.String())
+		}
+
+		writer.Flush()
 	case "run":
 		userCommandName := command.Arguments[0]
 		userCommandArgs := command.Arguments[1:]
 
 		if userCommand, ok := s.rdmConfig.Commands[userCommandName]; ok {
-			err := s.processManager.Start(userCommandName, userCommand.ExecutablePath, userCommandArgs...)
+			if userCommand.LongRunning {
+				err := s.processManager.RunInBackground(s.context, userCommandName, userCommand.ExecutablePath, userCommandArgs...)
 
-			if err != nil {
-				rw.Write([]byte(fmt.Sprintf("Could not run command: %v", err)))
+				if err != nil {
+					rw.Write([]byte(fmt.Sprintf("Could not run command: %v", err)))
+					return
+				}
+
+				rw.Write([]byte(fmt.Sprintf("Started command: %s", userCommandName)))
+			} else {
+				ctx, cancel := context.WithTimeout(s.context, time.Second*30)
+				defer cancel()
+
+				output, err := s.processManager.RunNow(ctx, userCommandName, userCommand.ExecutablePath, userCommandArgs...)
+
+				if err != nil {
+					rw.Write([]byte(fmt.Sprintf("Could not run command: %v", err)))
+					return
+				}
+
+				rw.Write([]byte(output))
 			}
 		} else {
 			rw.Write([]byte("Command not found"))
@@ -98,6 +133,7 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 func (s *Server) Serve(ctx context.Context, listener net.Listener) error {
 	ctx, cancel := context.WithCancel(ctx)
+	s.context = ctx
 	s.cancel = cancel
 
 	go func() {
