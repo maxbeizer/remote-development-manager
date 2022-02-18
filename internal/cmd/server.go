@@ -6,11 +6,12 @@ import (
 	"os"
 
 	"github.com/blakewilliams/remote-development-manager/internal/clipboard"
+	"github.com/blakewilliams/remote-development-manager/internal/config"
 	"github.com/blakewilliams/remote-development-manager/internal/server"
 	"github.com/spf13/cobra"
 )
 
-func newServerCmd(ctx context.Context, logger *log.Logger) *cobra.Command {
+func newServerCmd(ctx context.Context, logger *log.Logger, rdmConfig *config.RdmConfig) *cobra.Command {
 	return &cobra.Command{
 		Use:   "server",
 		Short: "Starts a server on the local machine.",
@@ -25,7 +26,7 @@ func newServerCmd(ctx context.Context, logger *log.Logger) *cobra.Command {
 			defer logFile.Close()
 			log.SetOutput(logFile)
 
-			s := server.New(server.UnixSocketPath(), clipboard.MacosClipboard, logger)
+			s := server.New(server.UnixSocketPath(), clipboard.MacosClipboard, logger, rdmConfig)
 			err = s.Listen(ctx)
 
 			if err != nil {

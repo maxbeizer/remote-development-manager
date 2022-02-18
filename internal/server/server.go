@@ -14,14 +14,17 @@ import (
 	"time"
 
 	"github.com/blakewilliams/remote-development-manager/internal/clipboard"
+	"github.com/blakewilliams/remote-development-manager/internal/config"
 )
 
 type Server struct {
-	path       string
-	logger     *log.Logger
-	clipboard  clipboard.Clipboard
-	httpServer *http.Server
-	cancel     context.CancelFunc
+	path           string
+	rdmConfig      *config.RdmConfig
+	logger         *log.Logger
+	clipboard      clipboard.Clipboard
+	httpServer     *http.Server
+	cancel         context.CancelFunc
+	processManager *processManager
 }
 
 type Command struct {
@@ -67,6 +70,27 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 				s.logger.Printf("could not write paste message: %v", err)
 			}
 		}
+	case "run":
+		userCommandName := command.Arguments[0]
+		userCommandArgs := command.Arguments[1:]
+
+		if userCommand, ok := s.rdmConfig.Commands[userCommandName]; ok {
+			err := s.processManager.Start(userCommandName, userCommand.ExecutablePath, userCommandArgs...)
+
+			if err != nil {
+				rw.Write([]byte(fmt.Sprintf("Could not run command: %v", err)))
+			}
+		} else {
+			rw.Write([]byte("Command not found"))
+		}
+
+	case "commands":
+		var out strings.Builder
+		for name := range s.rdmConfig.Commands {
+			out.WriteString(fmt.Sprintf("%s\n", name))
+		}
+
+		rw.Write([]byte(out.String()))
 	default:
 		s.logger.Printf("command not found: %s", command.Name)
 	}
@@ -98,8 +122,14 @@ func (s *Server) Listen(ctx context.Context) error {
 	return s.Serve(ctx, sock)
 }
 
-func New(path string, clipboard clipboard.Clipboard, logger *log.Logger) *Server {
-	server := &Server{path: path, clipboard: clipboard, logger: logger}
+func New(path string, clipboard clipboard.Clipboard, logger *log.Logger, rdmConfig *config.RdmConfig) *Server {
+	server := &Server{
+		path:           path,
+		clipboard:      clipboard,
+		logger:         logger,
+		rdmConfig:      rdmConfig,
+		processManager: &processManager{commands: map[int]*exec.Cmd{}},
+	}
 	server.httpServer = &http.Server{
 		Handler:      server,
 		ReadTimeout:  time.Second * 10,
