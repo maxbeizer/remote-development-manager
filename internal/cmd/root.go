@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -23,8 +21,16 @@ func Execute(ctx context.Context) error {
 	logger := log.Default()
 
 	rdmConfig := config.New()
+	home, err := os.UserHomeDir()
 
-	readConfig(rdmConfig)
+	if err == nil {
+		path := filepath.Join(home, ".config/rdm/rdm.json")
+		err := rdmConfig.Load(path)
+
+		if err != nil && err != config.ErrConfigDoesNotExist {
+			panic(err)
+		}
+	}
 
 	rootCmd.AddCommand(newServerCmd(ctx, logger, rdmConfig))
 	rootCmd.AddCommand(newCopyCmd(ctx, logger))
@@ -40,27 +46,4 @@ func Execute(ctx context.Context) error {
 	}
 
 	return rootCmd.Execute()
-}
-
-func readConfig(rdmConfig *config.RdmConfig) {
-	home, err := os.UserHomeDir()
-	path := filepath.Join(home, ".config/rdm/rdm.json")
-
-	_, err = os.Stat(path)
-
-	if err != nil {
-		return
-	}
-
-	contents, err := ioutil.ReadFile(path)
-
-	if err != nil {
-		panic(err)
-	}
-
-	err = json.Unmarshal(contents, rdmConfig)
-
-	if err != nil {
-		panic(err)
-	}
 }
