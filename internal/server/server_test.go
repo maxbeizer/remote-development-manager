@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/blakewilliams/remote-development-manager/internal/clipboard"
+	"github.com/blakewilliams/remote-development-manager/internal/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,7 +31,7 @@ func TestServer_Copy(t *testing.T) {
 	nullLogger := log.New(io.Discard, "", log.LstdFlags)
 
 	testClipboard := clipboard.NewTestClipboard()
-	server := New(path, testClipboard, nullLogger)
+	server := New(path, testClipboard, nullLogger, &config.RdmConfig{})
 
 	listener, err := net.Listen("unix", server.path)
 	defer os.Remove(server.path)
