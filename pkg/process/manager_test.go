@@ -13,10 +13,11 @@ import (
 func TestManager_RunInBackground(t *testing.T) {
 	manager := NewManager()
 
-	tmpScript, err := ioutil.TempFile("", "tmpscript.sh")
+	tmpScript, err := ioutil.TempFile("", "manager_sleep.sh")
+	require.NoError(t, err)
 	tmpScript.WriteString("#!/usr/bin/env bash\nsleep 5")
 	tmpScript.Chmod(0700)
-	require.NoError(t, err)
+	tmpScript.Close()
 	defer os.Remove(tmpScript.Name())
 
 	err = manager.RunInBackground(context.TODO(), "test", tmpScript.Name())
@@ -37,10 +38,11 @@ func TestManager_RunInBackground(t *testing.T) {
 func TestManager_RunNow(t *testing.T) {
 	manager := NewManager()
 
-	tmpScript, err := ioutil.TempFile("", "tmpscript.sh")
+	tmpScript, err := ioutil.TempFile("", "manager_hello.sh")
+	require.NoError(t, err)
 	tmpScript.WriteString("#!/usr/bin/env bash\necho 'hi'")
 	tmpScript.Chmod(0700)
-	require.NoError(t, err)
+	tmpScript.Close()
 	defer os.Remove(tmpScript.Name())
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
