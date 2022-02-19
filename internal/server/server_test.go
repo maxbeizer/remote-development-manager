@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/blakewilliams/remote-development-manager/internal/clipboard"
 	"github.com/blakewilliams/remote-development-manager/internal/config"
+	"github.com/blakewilliams/remote-development-manager/pkg/clipboard"
 	"github.com/stretchr/testify/require"
 )
 

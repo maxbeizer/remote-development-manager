@@ -1,4 +1,4 @@
-package server
+package process
 
 import (
 	"bytes"
@@ -10,40 +10,44 @@ import (
 
 var ErrNoProcess = errors.New("No process with that PID found")
 
-type processManager struct {
+type Manager struct {
 	commands map[int]*exec.Cmd
 	mu       sync.Mutex
 }
 
-func (pm *processManager) RunningProcesses() []*exec.Cmd {
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
+func NewManager() *Manager {
+	return &Manager{commands: map[int]*exec.Cmd{}}
+}
+
+func (m *Manager) RunningProcesses() []*exec.Cmd {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	commands := make([]*exec.Cmd, 0)
 
-	for _, command := range pm.commands {
+	for _, command := range m.commands {
 		commands = append(commands, command)
 	}
 
 	return commands
 }
 
-func (pm *processManager) AddPid(cmd *exec.Cmd, pid int) {
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
+func (m *Manager) AddPid(cmd *exec.Cmd, pid int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	pm.commands[pid] = cmd
+	m.commands[pid] = cmd
 }
 
-func (pm *processManager) RemovePid(pid int) {
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
+func (m *Manager) RemovePid(pid int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	delete(pm.commands, pid)
+	delete(m.commands, pid)
 }
 
-func (pm *processManager) Kill(pid int) error {
-	commands := pm.RunningProcesses()
+func (m *Manager) Kill(pid int) error {
+	commands := m.RunningProcesses()
 
 	// this is really ineffecient, but probably not a big deal since it's
 	// unlikely that RDM will manage a significant number of processes.
@@ -56,7 +60,7 @@ func (pm *processManager) Kill(pid int) error {
 	return ErrNoProcess
 }
 
-func (pm *processManager) RunNow(ctx context.Context, name string, path string, args ...string) ([]byte, error) {
+func (m *Manager) RunNow(ctx context.Context, name string, path string, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, path, args...)
 
 	var output bytes.Buffer
@@ -69,8 +73,8 @@ func (pm *processManager) RunNow(ctx context.Context, name string, path string, 
 
 	pid := cmd.Process.Pid
 
-	pm.AddPid(cmd, pid)
-	defer pm.RemovePid(pid)
+	m.AddPid(cmd, pid)
+	defer m.RemovePid(pid)
 
 	err = cmd.Wait()
 
@@ -81,7 +85,7 @@ func (pm *processManager) RunNow(ctx context.Context, name string, path string, 
 	return output.Bytes(), nil
 }
 
-func (pm *processManager) RunInBackground(ctx context.Context, name string, path string, args ...string) error {
+func (m *Manager) RunInBackground(ctx context.Context, name string, path string, args ...string) error {
 	cmd := exec.CommandContext(ctx, path, args...)
 
 	stdin, err := cmd.StdinPipe()
@@ -96,10 +100,10 @@ func (pm *processManager) RunInBackground(ctx context.Context, name string, path
 		return err
 	}
 
-	pm.AddPid(cmd, cmd.Process.Pid)
+	m.AddPid(cmd, cmd.Process.Pid)
 
 	go func() {
-		defer pm.RemovePid(cmd.Process.Pid)
+		defer m.RemovePid(cmd.Process.Pid)
 		cmd.Wait()
 	}()
 

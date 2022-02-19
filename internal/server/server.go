@@ -15,8 +15,9 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/blakewilliams/remote-development-manager/internal/clipboard"
 	"github.com/blakewilliams/remote-development-manager/internal/config"
+	"github.com/blakewilliams/remote-development-manager/pkg/clipboard"
+	"github.com/blakewilliams/remote-development-manager/pkg/process"
 )
 
 type Server struct {
@@ -26,7 +27,7 @@ type Server struct {
 	clipboard      clipboard.Clipboard
 	httpServer     *http.Server
 	cancel         context.CancelFunc
-	processManager *processManager
+	processManager *process.Manager
 	context        context.Context
 }
 
@@ -182,7 +183,7 @@ func New(path string, clipboard clipboard.Clipboard, logger *log.Logger, rdmConf
 		clipboard:      clipboard,
 		logger:         logger,
 		rdmConfig:      rdmConfig,
-		processManager: &processManager{commands: map[int]*exec.Cmd{}},
+		processManager: process.NewManager(),
 	}
 	server.httpServer = &http.Server{
 		Handler:      server,
