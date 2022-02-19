@@ -89,6 +89,9 @@ func TestServer_Run(t *testing.T) {
 	tmpScript.Chmod(0700)
 	require.NoError(t, err)
 
+	err = tmpScript.Close()
+	require.NoError(t, err)
+
 	nullLogger := log.New(io.Discard, "", log.LstdFlags)
 
 	server := New(
