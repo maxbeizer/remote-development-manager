@@ -41,6 +41,7 @@ func Execute(ctx context.Context) error {
 	rootCmd.AddCommand(newLogpathCmd(ctx))
 	rootCmd.AddCommand(newRunCmd(ctx, logger, rdmConfig))
 	rootCmd.AddCommand(newPsCmd(ctx, logger))
+	rootCmd.AddCommand(newKillCmd(ctx, logger))
 
 	if rdmConfig != nil {
 		rootCmd.AddCommand(newRunCmd(ctx, logger, rdmConfig))

@@ -46,7 +46,7 @@ func longRunDescription(config *config.RdmConfig) string {
 
 	var out strings.Builder
 
-	out.WriteString("Runs a custom command defined via rdm config\n\n")
+	out.WriteString("\n")
 
 	c := client.New()
 	result, err := c.SendCommand(ctx, "commands")
@@ -57,10 +57,16 @@ func longRunDescription(config *config.RdmConfig) string {
 		return out.String()
 	}
 
-	out.WriteString("Available commands:\n")
+	result = bytes.TrimRight(result, "\n")
 
-	for _, command := range bytes.Split(result, []byte("\n")) {
-		out.WriteString(fmt.Sprintf("  %s\n", command))
+	out.WriteString("Available commands:\n")
+	commands := bytes.Split(result, []byte("\n"))
+
+	for i, command := range commands {
+		out.WriteString(fmt.Sprintf("  %s", command))
+		if i != len(commands)-1 {
+			out.WriteByte('\n')
+		}
 	}
 
 	return out.String()

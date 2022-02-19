@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -62,6 +63,22 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	case "stop":
 		log.Printf("received stop command, shutting down")
 		s.cancel()
+	case "kill":
+		pid, err := strconv.Atoi(command.Arguments[0])
+
+		if err != nil {
+			rw.Write([]byte("Invalid pid provided\n"))
+			return
+		}
+
+		err = s.processManager.Kill(pid)
+
+		if err != nil {
+			rw.Write([]byte(fmt.Sprintf("Could not kill process: %s\n", err)))
+			return
+		}
+
+		rw.Write([]byte("Process killed"))
 	case "paste":
 		contents, err := s.clipboard.Paste()
 		if err != nil {
@@ -80,9 +97,10 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		writer := tabwriter.NewWriter(rw, 40, 2, 4, ' ', 0)
 		rw.Write([]byte("Processes:\n"))
 
+		writer := tabwriter.NewWriter(rw, 20, 2, 4, ' ', 0)
+		fmt.Fprintln(writer, "pid\tcommand")
 		for _, command := range commands {
 			fmt.Fprintf(writer, "%d\t%s\n", command.Process.Pid, command.String())
 		}

@@ -3,9 +3,13 @@ package server
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"os/exec"
 	"sync"
 )
+
+var ErrNoProcess = errors.New("No process with that PID found")
 
 type processManager struct {
 	commands map[int]*exec.Cmd
@@ -39,6 +43,20 @@ func (pm *processManager) RemovePid(pid int) {
 	delete(pm.commands, pid)
 }
 
+func (pm *processManager) Kill(pid int) error {
+	commands := pm.RunningProcesses()
+
+	// this is really ineffecient, but probably not a big deal since it's
+	// unlikely that RDM will manage a significant number of processes.
+	for _, command := range commands {
+		if command.Process.Pid == pid {
+			return command.Process.Kill()
+		}
+	}
+
+	return ErrNoProcess
+}
+
 func (pm *processManager) RunNow(ctx context.Context, name string, path string, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, path, args...)
 
@@ -67,9 +85,13 @@ func (pm *processManager) RunNow(ctx context.Context, name string, path string, 
 func (pm *processManager) RunInBackground(ctx context.Context, name string, path string, args ...string) error {
 	cmd := exec.CommandContext(ctx, path, args...)
 
-	var output bytes.Buffer
-	cmd.Stdout = &output
-	err := cmd.Start()
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+	stdin.Close()
+
+	err = cmd.Start()
 
 	if err != nil {
 		return err
