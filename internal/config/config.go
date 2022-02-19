@@ -13,17 +13,17 @@ var ErrConfigDoesNotExist = errors.New("Config file does not exist")
 
 type (
 	RdmConfig struct {
-		Commands map[string]*userCommand `json:"commands"`
+		Commands map[string]*UserCommand `json:"commands"`
 	}
 
-	userCommand struct {
+	UserCommand struct {
 		ExecutablePath string `json:"executablePath"`
 		LongRunning    bool   `json:"longRunning"`
 	}
 )
 
 func New() *RdmConfig {
-	return &RdmConfig{Commands: map[string]*userCommand{}}
+	return &RdmConfig{Commands: map[string]*UserCommand{}}
 }
 
 func (r *RdmConfig) Load(configPath string) error {
