@@ -88,6 +88,7 @@ func TestServer_Run(t *testing.T) {
 	tmpScript.WriteString("#!/usr/bin/env bash\necho 'hi'")
 	tmpScript.Chmod(0700)
 	require.NoError(t, err)
+	defer os.Remove(tmpScript.Name())
 
 	err = tmpScript.Close()
 	require.NoError(t, err)

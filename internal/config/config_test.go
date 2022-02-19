@@ -2,6 +2,7 @@ package config
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -26,6 +27,7 @@ var testJson = `
 func TestLoad(t *testing.T) {
 	file, err := ioutil.TempFile("", "config.json")
 	require.NoError(t, err)
+	defer os.Remove(file.Name())
 
 	file.WriteString(testJson)
 	file.Close()
