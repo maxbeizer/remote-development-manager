@@ -32,20 +32,6 @@ func (m *Manager) RunningProcesses() []*exec.Cmd {
 	return commands
 }
 
-func (m *Manager) AddPid(cmd *exec.Cmd, pid int) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.commands[pid] = cmd
-}
-
-func (m *Manager) RemovePid(pid int) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	delete(m.commands, pid)
-}
-
 func (m *Manager) Kill(pid int) error {
 	commands := m.RunningProcesses()
 
@@ -53,7 +39,14 @@ func (m *Manager) Kill(pid int) error {
 	// unlikely that RDM will manage a significant number of processes.
 	for _, command := range commands {
 		if command.Process.Pid == pid {
-			return command.Process.Kill()
+			// Remove PID since cmd.Wait doesn't always exist in a timely manner
+			err := command.Process.Kill()
+
+			if err != nil {
+				m.removePid(pid)
+			}
+
+			return err
 		}
 	}
 
@@ -73,8 +66,8 @@ func (m *Manager) RunNow(ctx context.Context, name string, path string, args ...
 
 	pid := cmd.Process.Pid
 
-	m.AddPid(cmd, pid)
-	defer m.RemovePid(pid)
+	m.addPid(cmd, pid)
+	defer m.removePid(pid)
 
 	err = cmd.Wait()
 
@@ -100,12 +93,26 @@ func (m *Manager) RunInBackground(ctx context.Context, name string, path string,
 		return err
 	}
 
-	m.AddPid(cmd, cmd.Process.Pid)
+	m.addPid(cmd, cmd.Process.Pid)
 
 	go func() {
-		defer m.RemovePid(cmd.Process.Pid)
+		defer m.removePid(cmd.Process.Pid)
 		cmd.Wait()
 	}()
 
 	return nil
+}
+
+func (m *Manager) addPid(cmd *exec.Cmd, pid int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.commands[pid] = cmd
+}
+
+func (m *Manager) removePid(pid int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	delete(m.commands, pid)
 }
