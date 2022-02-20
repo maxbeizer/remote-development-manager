@@ -77,7 +77,7 @@ const (
 func New() *Client {
 	runType := RunLocal
 
-	if os.Getenv("SSH_TTY") != "" {
+	if os.Getenv("SSH_TTY") != "" || os.Getenv("SSH_CLIENT") != "" || os.Getenv("SSH_CONNECTION") != "" {
 		runType = RunRemote
 	}
 
