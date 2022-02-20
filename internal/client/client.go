@@ -35,38 +35,20 @@ func (c *Client) SendCommand(ctx context.Context, commandName string, arguments 
 		return nil, fmt.Errorf("could not create http request: %w", err)
 	}
 
-	bodyCh := make(chan []byte, 1)
-	defer close(bodyCh)
-	errCh := make(chan error, 1)
-	defer close(errCh)
+	response, err := c.httpClient.Do(request)
 
-	go func() {
-		response, err := c.httpClient.Do(request)
-
-		if err != nil {
-			errCh <- fmt.Errorf("could not send command: %w", err)
-			return
-		}
-		defer response.Body.Close()
-
-		contents, err := io.ReadAll(response.Body)
-
-		if err != nil {
-			errCh <- fmt.Errorf("could not read response from server: %w", err)
-			return
-		}
-
-		bodyCh <- contents
-	}()
-
-	select {
-	case contents := <-bodyCh:
-		return contents, nil
-	case err := <-errCh:
-		return nil, err
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	if err != nil {
+		return nil, fmt.Errorf("could not send command: %w", err)
 	}
+	defer response.Body.Close()
+
+	contents, err := io.ReadAll(response.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return contents, nil
 }
 
 const (
