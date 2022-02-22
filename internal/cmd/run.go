@@ -28,7 +28,7 @@ func newRunCmd(ctx context.Context, logger *log.Logger, config *config.RdmConfig
 				return
 			}
 
-			fmt.Println(string(content))
+			fmt.Print(string(content))
 		},
 	}
 
