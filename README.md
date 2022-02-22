@@ -69,10 +69,6 @@ Here's a small example defining two custom commands:
 The `executablePath` can either be an absolute path to an executable or a
 relative path that's relative to the config file.
 
-`longRunning` determines if the command should block or not. If `true` the
-executable is run in the background, otherwise rdm will wait for the executable
-to complete and forward any output.
-
 ## Integrations
 
 Here's a few tools you can easily hook `rdm` into:
