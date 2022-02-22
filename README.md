@@ -57,12 +57,10 @@ Here's a small example defining two custom commands:
 {
   "commands": {
     "host_time": {
-      "executablePath": "./hosttime.sh",
-      "longRunning": false
+      "executablePath": "./hosttime.sh"
     },
     "forward": {
-      "executablePath": "./forward_ports.sh",
-      "longRunning": true
+      "executablePath": "./forward_ports.sh"
     }
   }
 }

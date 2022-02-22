@@ -18,7 +18,6 @@ type (
 
 	UserCommand struct {
 		ExecutablePath string `json:"executablePath"`
-		LongRunning    bool   `json:"longRunning"`
 	}
 )
 

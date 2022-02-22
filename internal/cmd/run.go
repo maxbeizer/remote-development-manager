@@ -17,11 +17,21 @@ func newRunCmd(ctx context.Context, logger *log.Logger, config *config.RdmConfig
 	// TODO this needs to diverge, server should hold all the commands and
 	// client should query for available commands
 	cmd := &cobra.Command{
-		Use:   "run",
+		Use:   "run command [ARGS]",
 		Short: "Runs a custom command defined in the rdm config",
 		Run: func(cmd *cobra.Command, args []string) {
 			c := client.New()
-			content, err := c.SendCommand(ctx, "run", args...)
+			needsBackground, err := cmd.Flags().GetBool("background")
+			if err != nil {
+				panic(err)
+			}
+
+			serverCmd := "run"
+			if needsBackground {
+				serverCmd = "runbg"
+			}
+
+			content, err := c.SendCommand(ctx, serverCmd, args...)
 
 			if err != nil {
 				fmt.Printf("Could not run command: %v", err)
@@ -31,6 +41,9 @@ func newRunCmd(ctx context.Context, logger *log.Logger, config *config.RdmConfig
 			fmt.Print(string(content))
 		},
 	}
+
+	var background bool
+	cmd.Flags().BoolVarP(&background, "background", "b", false, "Runs process in background instead of foreground")
 
 	cmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
 		cmd.Usage()

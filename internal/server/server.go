@@ -107,35 +107,41 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 
 		writer.Flush()
+	case "runbg":
+		userCommandName := command.Arguments[0]
+		userCommandArgs := command.Arguments[1:]
+
+		if userCommand, ok := s.rdmConfig.Commands[userCommandName]; ok {
+			err := s.processManager.RunInBackground(s.context, userCommandName, userCommand.ExecutablePath, userCommandArgs...)
+
+			if err != nil {
+				rw.Write([]byte(fmt.Sprintf("Could not run command: %v", err)))
+				return
+			}
+
+			rw.Write([]byte(fmt.Sprintf("Started command: %s\n", userCommandName)))
+		} else {
+			rw.Write([]byte("Command not found"))
+		}
+
 	case "run":
 		userCommandName := command.Arguments[0]
 		userCommandArgs := command.Arguments[1:]
 
 		if userCommand, ok := s.rdmConfig.Commands[userCommandName]; ok {
-			if userCommand.LongRunning {
-				err := s.processManager.RunInBackground(s.context, userCommandName, userCommand.ExecutablePath, userCommandArgs...)
+			ctx, cancel := context.WithTimeout(s.context, time.Second*30)
+			defer cancel()
 
-				if err != nil {
-					rw.Write([]byte(fmt.Sprintf("Could not run command: %v", err)))
-					return
-				}
+			output, err := s.processManager.RunNow(ctx, userCommandName, userCommand.ExecutablePath, userCommandArgs...)
 
-				rw.Write([]byte(fmt.Sprintf("Started command: %s", userCommandName)))
-			} else {
-				ctx, cancel := context.WithTimeout(s.context, time.Second*30)
-				defer cancel()
-
-				output, err := s.processManager.RunNow(ctx, userCommandName, userCommand.ExecutablePath, userCommandArgs...)
-
-				if err != nil {
-					rw.Write([]byte(fmt.Sprintf("Could not run command: %v", err)))
-					return
-				}
-
-				rw.Write([]byte(output))
+			if err != nil {
+				rw.Write([]byte(fmt.Sprintf("Could not run command: %v", err)))
+				return
 			}
+
+			rw.Write([]byte(output))
 		} else {
-			rw.Write([]byte("Command not found"))
+			rw.Write([]byte("Command not found\n"))
 		}
 
 	case "commands":

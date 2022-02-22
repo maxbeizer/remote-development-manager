@@ -101,7 +101,7 @@ func TestServer_Run(t *testing.T) {
 		nullLogger,
 		&config.RdmConfig{
 			Commands: map[string]*config.UserCommand{
-				"test": {ExecutablePath: tmpScript.Name(), LongRunning: false},
+				"test": {ExecutablePath: tmpScript.Name()},
 			},
 		},
 	)

@@ -17,8 +17,7 @@ var testJson = `
 		},
 
 		"abstest": {
-			"executablePath": "/tmp/bar",
-			"longRunning": true 
+			"executablePath": "/tmp/bar"
 		}
 	}
 }
@@ -40,12 +39,10 @@ func TestLoad(t *testing.T) {
 	require.NotNil(t, config.Commands["reltest"])
 	expectedRelTestPath := filepath.Join(filepath.Dir(file.Name()), "foo")
 	require.Equal(t, expectedRelTestPath, config.Commands["reltest"].ExecutablePath)
-	require.False(t, config.Commands["reltest"].LongRunning)
 
 	require.NotNil(t, config.Commands["abstest"])
 	expectedAbsTestPath := "/tmp/bar"
 	require.Equal(t, expectedAbsTestPath, config.Commands["abstest"].ExecutablePath)
-	require.True(t, config.Commands["abstest"].LongRunning)
 
 	require.NotNil(t, config.Commands["abstest"])
 }
